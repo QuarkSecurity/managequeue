@@ -36,25 +36,26 @@ struct msg_queue_config {
  * @param msgq_conf       pointer to the msg queue config struct.
  * @return 0 for success -1 for failure
  */
-int create_msg_queue(struct msg_queue_config *msgq_conf){
+int create_msg_queue(struct msg_queue_config *msgq_conf)
+{
 	struct msqid_ds mq_buffer;
 	int ret = -1;
 	int msgqueue_id;
 	int msgflg = (IPC_CREAT | msgq_conf->permissions);
 	key_t key;
 
-	if(create_msg_queue_file(msgq_conf->path, msgq_conf->permissions, msgq_conf->user_id, msgq_conf->group_id) != 0){
+	if (create_msg_queue_file(msgq_conf->path, msgq_conf->permissions, msgq_conf->user_id, msgq_conf->group_id) != 0) {
 		fprintf(stderr,"Failed to create file\n");
 		goto done;
 	}
 
 	key = ftok(msgq_conf->path, PROJ_ID);
-	if (key == -1){
+	if (key == -1) {
 		fprintf(stderr, "An error has occured with ftok(): %s\n", strerror(errno));
 		goto done;
 	}
 	msgqueue_id = msgget(key, msgflg);
-	if (msgqueue_id == -1){
+	if (msgqueue_id == -1) {
 		fprintf(stderr,"An error has occured creating the message queue: %s\n", strerror(errno));
 		goto done;
 	}
@@ -66,10 +67,10 @@ int create_msg_queue(struct msg_queue_config *msgq_conf){
 				goto done;
 		}
 
-		if(msgq_conf->user_id != -1){
+		if (msgq_conf->user_id != -1) {
 			mq_buffer.msg_perm.uid = msgq_conf->user_id;
 		}
-		if(msgq_conf->group_id != -1){
+		if (msgq_conf->group_id != -1) {
 			mq_buffer.msg_perm.gid = msgq_conf->group_id;
 		}
 
@@ -92,25 +93,26 @@ done:
  * @param group_id         id of the group who rights to the file
  * @return 0 for success -1 for failure
  */
-int create_msg_queue_file(char *path, int permissions, uid_t user_id, gid_t group_id){
+int create_msg_queue_file(char *path, int permissions, uid_t user_id, gid_t group_id)
+{
 	int ret = -1;
 	// Makes sure the path doesn't go back any directories
-	if (strstr(path, "..")){
+	if (strstr(path, "..")) {
 		printf("Invalid path found\n");
 		goto done;
 	}
 
-	if (strncmp("/var/run/", path, 9)){
+	if (strncmp("/var/run/", path, 9)) {
 		printf("The message queue must be located in the \"/var/run/\" directory.\n");
 		goto done;
 	}
 	// Checks that the size of the path doesn't exceed PATH_MAX
-	if (strlen(path) > PATH_MAX - 1){
+	if (strlen(path) > PATH_MAX - 1) {
 		printf("The length of the path is too long.\n");
 		goto done;
 	}
 
-	if (mkdir_p(path) != 0){
+	if (mkdir_p(path) != 0) {
 		fprintf(stderr,"Failed to create path\n");
 		goto done;
 	}
@@ -136,7 +138,7 @@ int create_msg_queue_file(char *path, int permissions, uid_t user_id, gid_t grou
 
 	ret = 0;
 done:
-  return ret;
+	return ret;
 
 }
 
@@ -145,24 +147,29 @@ done:
  * @param path            pointer to the path
  * @return 0 for success -1 for failure
  */
-int mkdir_p(char *path){
+int mkdir_p(char *path)
+{
 	int ret = -1;
 	char *path_cpy, *tmp_path, *tok, *nxt_tok, *sptr;
 
 	tmp_path = (char *)malloc(PATH_MAX);
+	if (tmp_path == NULL) {
+		fprintf(stderr, "malloc failed");
+		goto done;
+	}
 	memset(tmp_path, 0, PATH_MAX);
 	path_cpy = strdup(path);
-	strncat(tmp_path, "/", PATH_MAX);
+	strncat(tmp_path, "/", PATH_MAX - 1);
 	tok = strtok_r(path_cpy, "/", &sptr);
 	if (tok == NULL) {
 			fprintf(stderr, "Failed to get token");
 			goto done;
 	}
 
-	while((nxt_tok = strtok_r(NULL, "/", &sptr)) != NULL){
+	while((nxt_tok = strtok_r(NULL, "/", &sptr)) != NULL) {
 
-		strncat(tmp_path, tok, PATH_MAX - strlen(tmp_path));
-		strncat(tmp_path, "/", PATH_MAX - strlen(tmp_path));
+		strncat(tmp_path, tok, PATH_MAX - strlen(tmp_path) - 1);
+		strncat(tmp_path, "/", PATH_MAX - strlen(tmp_path) - 1);
 
 		if (mkdir(tmp_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) != 0) { /* Error. */
 			if (errno != EEXIST) {
@@ -174,11 +181,11 @@ int mkdir_p(char *path){
 
 	ret = 0;
 done:
-	if(tmp_path){
+	if (tmp_path) {
 		free(tmp_path);
 	}
 
-return ret;
+	return ret;
 }
 
 /* Deletes the msg queue and the file its file
@@ -186,28 +193,29 @@ return ret;
  * @param msgq_conf       pointer to the msg queue config struct.
  * @return 0 for success -1 for failure
  */
-int delete_msg_queue(struct msg_queue_config *msgq_conf){
+int delete_msg_queue(struct msg_queue_config *msgq_conf)
+{
 int ret = -1;
 int msgqueue_id;
 key_t key;
 
 	key = ftok(msgq_conf->path, PROJ_ID);
-	if (key == -1){
+	if (key == -1) {
 		fprintf(stderr,"An error has occured with ftok()\n");
 		goto done;
 	}
 	msgqueue_id = msgget(key, 0);
-	if (msgqueue_id == -1){
+	if (msgqueue_id == -1) {
 		fprintf(stderr,"An error has occured getting the message queue: %s\n", strerror(errno));
 		goto done;
 	}
 
-	if (msgctl(msgqueue_id, IPC_RMID, NULL) == -1){
+	if (msgctl(msgqueue_id, IPC_RMID, NULL) == -1) {
 		fprintf(stderr,"An error has occured while removing the message queue: %s\n", strerror(errno));
 		goto done;
 	}
 
-	if (remove(msgq_conf->path) == -1){
+	if (remove(msgq_conf->path) == -1) {
 		fprintf(stderr,"An error has occured while removing the message queue.\n");
 		goto done;
 	}
@@ -219,7 +227,8 @@ done:
 }
 
 
-int load_config(char *config, struct msg_queue_config* msgq_conf){
+int load_config(char *config, struct msg_queue_config* msgq_conf)
+{
 	int ret = -1;
 	config_t cfg;
 	const char *path = NULL, *username = NULL, *group = NULL, *perms = NULL;
@@ -232,46 +241,47 @@ int load_config(char *config, struct msg_queue_config* msgq_conf){
 		goto done;
 	}
 
-	if(config_lookup_string(&cfg, "path", &path) != CONFIG_TRUE){
-	  fprintf(stderr,"Failed to find path: %s\n", config_error_text(&cfg));
-	  goto done;
+	if (config_lookup_string(&cfg, "path", &path) != CONFIG_TRUE) {
+		fprintf(stderr,"Failed to find path: %s\n", config_error_text(&cfg));
+		goto done;
 	}
 
-	if(config_lookup_string(&cfg, "permissions", &perms) != CONFIG_TRUE){
-	  fprintf(stderr,"Failed to find permissions: %s\n", config_error_text(&cfg));
-	  goto done;
+	if (config_lookup_string(&cfg, "permissions", &perms) != CONFIG_TRUE) {
+		fprintf(stderr,"Failed to find permissions: %s\n", config_error_text(&cfg));
+		goto done;
 	}
 
+	errno = 0;
 	permissions = strtol(perms, NULL, 8);
-	if ((errno == ERANGE && (permissions == INT_MAX || permissions == INT_MIN)) || (errno != 0 && permissions == 0)){
+	if ((permissions > INT_MAX || permissions < INT_MIN) || errno != 0) {
 		printf("Invalid permissions\n");
 		goto done;
 	}
 
-	if(config_lookup_string(&cfg, "username", &username) != CONFIG_TRUE){
+	if (config_lookup_string(&cfg, "username", &username) != CONFIG_TRUE) {
 	}
 
-	if(config_lookup_string(&cfg, "group", &group) != CONFIG_TRUE){
+	if (config_lookup_string(&cfg, "group", &group) != CONFIG_TRUE) {
 	}
 
-	if (username != NULL){
-	struct passwd *p;
+	if (username != NULL) {
+		struct passwd *p;
 
-	p = getpwnam(username);
-	if(p == NULL){
-		fprintf(stderr,"Invalid username\n");
-		goto done;
-	}
+		p = getpwnam(username);
+		if (p == NULL) {
+			fprintf(stderr,"Invalid username\n");
+			goto done;
+		}
 		msgq_conf->user_id = p->pw_uid;
 	} else {
 		msgq_conf->user_id = -1;
 	}
 
-	if (group != NULL){
+	if (group != NULL) {
 		struct group *g;
 
 		g = getgrnam(group);
-		if(g == NULL){
+		if (g == NULL) {
 			fprintf(stderr,"Invalid group name\n");
 			goto done;
 		}
@@ -281,6 +291,10 @@ int load_config(char *config, struct msg_queue_config* msgq_conf){
 	}
 
 	msgq_conf->path = (char *)malloc(strlen(path));
+	if (msgq_conf->path == NULL) {
+		fprintf(stderr, "malloc failed");
+		goto done;
+	}
 	msgq_conf->path = strdup(path);
 	msgq_conf->permissions = permissions;
 
@@ -297,17 +311,23 @@ done:
  * @param [out] msgq_conf       pointer to the msg queue config struct.
  * @return 0 for success -1 for failure
  */
-int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_conf){
+int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_conf)
+{
 	int ret = -1;
 	char *username = NULL, *group = NULL;
 	// copies over the path
 	msgq_conf->path = (char *)malloc(strlen(args[2]));
-	strcpy(msgq_conf->path, args[2]);
+	if (msgq_conf->path == NULL) {
+		fprintf(stderr, "malloc failed");
+		goto done;
+	}
+	msgq_conf->path = strdup(args[2]);
 
 	// Checks the permissions are within correct range.
-	if (num_args > 3){
-		int permissions = strtol(args[3], NULL, 8);
-		if ((errno == ERANGE && (permissions == INT_MAX || permissions == INT_MIN)) || (errno != 0 && permissions == 0)){
+	if (num_args > 3) {
+		errno = 0;
+		long permissions = strtol(args[3], NULL, 8);
+		if ((permissions > INT_MAX || permissions < INT_MIN) || errno != 0) {
 			printf("Invalid permissions\n");
 			goto done;
 		}
@@ -316,13 +336,17 @@ int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_con
 		msgq_conf->permissions = permissions;
 	}
 
-	if (num_args > 4){
+	if (num_args > 4) {
 		struct passwd *p;
 		username = (char *)malloc(strlen(args[4]));
+		if (username == NULL) {
+			fprintf(stderr, "malloc failed");
+			goto done;
+		}
 		strcpy(username, args[4]);
 
 		p = getpwnam(username);
-		if(p == NULL){
+		if (p == NULL) {
 			fprintf(stderr,"Invalid username\n");
 			goto done;
 		}
@@ -331,13 +355,17 @@ int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_con
 		msgq_conf->user_id = -1;
 	}
 
-	if (num_args > 5){
+	if (num_args > 5) {
 		struct group *g;
 		group = (char *)malloc(strlen(args[5]));
+		if (group == NULL) {
+			fprintf(stderr, "malloc failed");
+			goto done;
+		}
 		strcpy(group, args[5]);
 
 		g = getgrnam(group);
-		if(g == NULL){
+		if (g == NULL) {
 			fprintf(stderr,"Invalid group name\n");
 			goto done;
 		}
@@ -347,11 +375,11 @@ int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_con
 	}
 	ret = 0;
 done:
-	if(username){
+	if (username) {
 		free(username);
 	}
 
-	if(group){
+	if (group) {
 		free(group);
 	}
 
@@ -364,8 +392,9 @@ done:
  * @param msgq_conf       pointer to the msg queue config struct.
  * @return 0 for success -1 for failure
  */
-void config_cleanup(struct msg_queue_config* msgq_conf){
-	if(msgq_conf->path){
+void config_cleanup(struct msg_queue_config* msgq_conf)
+{
+	if (msgq_conf->path) {
 		free(msgq_conf->path);
 	}
 }
@@ -391,12 +420,12 @@ int main(int argc, char **argv)
 			}
 	}
 
-	if (is_config){
-		if(load_config(cfg_path, &msgq_conf)){
+	if (is_config) {
+		if (load_config(cfg_path, &msgq_conf)) {
 			goto done;
 		}
-	} else if (argc >= 3){
-		if(load_parameters(argc, argv, &msgq_conf) != 0){
+	} else if (argc >= 3) {
+		if (load_parameters(argc, argv, &msgq_conf) != 0) {
 			goto done;
 		}
 	} else {
@@ -409,14 +438,14 @@ int main(int argc, char **argv)
 		goto done;
 	}
 
-	if (strcmp(cmd,"create") == 0 || strcmp(cmd,"CREATE") == 0){
-		if(create_msg_queue(&msgq_conf) == -1){
+	if (strcmp(cmd,"create") == 0 || strcmp(cmd,"CREATE") == 0) {
+		if (create_msg_queue(&msgq_conf) == -1) {
 				sd_notify(0, "STOPPING=1\nSTATUS=Error failed to create queue");
 				goto done;
 		}
 		sd_notify(0, "READY=1\nSTATUS=Created Queue");
-	} else if (strcmp(cmd,"delete") == 0 || strcmp(cmd,"DELETE") == 0){
-		if(delete_msg_queue(&msgq_conf)){
+	} else if (strcmp(cmd,"delete") == 0 || strcmp(cmd,"DELETE") == 0) {
+		if (delete_msg_queue(&msgq_conf)) {
 				sd_notify(0, "STOPPING=1\nSTATUS=Error failed to delete queue");
 				goto done;
 		}
