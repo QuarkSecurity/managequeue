@@ -232,7 +232,7 @@ int load_config(char *config, struct msg_queue_config* msgq_conf)
 	int ret = -1;
 	config_t cfg;
 	const char *path = NULL, *username = NULL, *group = NULL, *perms = NULL;
-	int permissions;
+	long permissions;
 	config_init(&cfg);
 
 	if (config_read_file(&cfg, config) != CONFIG_TRUE) {
@@ -253,7 +253,7 @@ int load_config(char *config, struct msg_queue_config* msgq_conf)
 
 	errno = 0;
 	permissions = strtol(perms, NULL, 8);
-	if ((permissions > INT_MAX || permissions < INT_MIN) || errno != 0) {
+	if ((permissions > INT_MAX || permissions < 0) || errno != 0) {
 		printf("Invalid permissions\n");
 		goto done;
 	}
@@ -327,7 +327,7 @@ int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_con
 	if (num_args > 3) {
 		errno = 0;
 		long permissions = strtol(args[3], NULL, 8);
-		if ((permissions > INT_MAX || permissions < INT_MIN) || errno != 0) {
+		if ((permissions > INT_MAX || permissions < 0) || errno != 0) {
 			printf("Invalid permissions\n");
 			goto done;
 		}
