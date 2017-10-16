@@ -185,6 +185,10 @@ done:
 		free(tmp_path);
 	}
 
+	if (path_cpy) {
+		free(path_cpy);
+	}
+
 	return ret;
 }
 
@@ -232,7 +236,7 @@ int load_config(char *config, struct msg_queue_config* msgq_conf)
 	int ret = -1;
 	config_t cfg;
 	const char *path = NULL, *username = NULL, *group = NULL, *perms = NULL;
-	long permissions;
+	long permissions = 0;
 	config_init(&cfg);
 
 	if (config_read_file(&cfg, config) != CONFIG_TRUE) {
@@ -290,11 +294,6 @@ int load_config(char *config, struct msg_queue_config* msgq_conf)
 		msgq_conf->group_id = -1;
 	}
 
-	msgq_conf->path = (char *)malloc(strlen(path));
-	if (msgq_conf->path == NULL) {
-		fprintf(stderr, "malloc failed");
-		goto done;
-	}
 	msgq_conf->path = strdup(path);
 	msgq_conf->permissions = permissions;
 
@@ -316,12 +315,11 @@ int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_con
 	int ret = -1;
 	char *username = NULL, *group = NULL;
 	// copies over the path
-	msgq_conf->path = (char *)malloc(strlen(args[2]));
+	msgq_conf->path = strdup(args[2]);
 	if (msgq_conf->path == NULL) {
-		fprintf(stderr, "malloc failed");
+		fprintf(stderr, "strdup failed");
 		goto done;
 	}
-	msgq_conf->path = strdup(args[2]);
 
 	// Checks the permissions are within correct range.
 	if (num_args > 3) {
@@ -338,12 +336,7 @@ int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_con
 
 	if (num_args > 4) {
 		struct passwd *p;
-		username = (char *)malloc(strlen(args[4]));
-		if (username == NULL) {
-			fprintf(stderr, "malloc failed");
-			goto done;
-		}
-		strcpy(username, args[4]);
+		username = strdup(args[4]);
 
 		p = getpwnam(username);
 		if (p == NULL) {
@@ -357,12 +350,7 @@ int load_parameters(int num_args, char **args, struct msg_queue_config* msgq_con
 
 	if (num_args > 5) {
 		struct group *g;
-		group = (char *)malloc(strlen(args[5]));
-		if (group == NULL) {
-			fprintf(stderr, "malloc failed");
-			goto done;
-		}
-		strcpy(group, args[5]);
+		group = strdup(args[5]);
 
 		g = getgrnam(group);
 		if (g == NULL) {
@@ -406,6 +394,7 @@ int main(int argc, char **argv)
 	bool is_config = false;
 	struct msg_queue_config msgq_conf;
 	char *cmd = argv[1];
+	msgq_conf.permissions = 0;
 
 	setvbuf(stdout, NULL, _IONBF, 0);
 
@@ -457,6 +446,9 @@ int main(int argc, char **argv)
 
 	ret = 0;
 done:
+	if (cfg_path) {
+		free(cfg_path)
+	}
 	config_cleanup(&msgq_conf);
 	return ret;
 }
