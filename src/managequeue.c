@@ -241,7 +241,7 @@ int load_config(char *config, struct msg_queue_config* msgq_conf)
 
 	if (config_read_file(&cfg, config) != CONFIG_TRUE) {
 		fprintf(stderr,"Failed to read config file.\n");
-		printf("%s\n", config_error_text(&cfg));
+		fprintf(stderr, "%s\n", config_error_text(&cfg));
 		goto done;
 	}
 
@@ -395,6 +395,7 @@ int main(int argc, char **argv)
 	struct msg_queue_config msgq_conf;
 	char *cmd = argv[1];
 	msgq_conf.permissions = 0;
+	msgq_conf.path = NULL;
 
 	setvbuf(stdout, NULL, _IONBF, 0);
 
@@ -447,7 +448,7 @@ int main(int argc, char **argv)
 	ret = 0;
 done:
 	if (cfg_path) {
-		free(cfg_path)
+		free(cfg_path);
 	}
 	config_cleanup(&msgq_conf);
 	return ret;
