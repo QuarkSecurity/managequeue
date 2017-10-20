@@ -20,5 +20,8 @@ to the message queue.
 The receive command reads a single message from the message queue and writes
 it to stdout.
 
+## Test
+To run tests `make test`.
+
 ## Example
 echo hello | ./mqclient send /var/run/mq/example && ./mqclient receive /var/run/mq/example

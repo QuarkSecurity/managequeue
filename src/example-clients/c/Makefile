@@ -8,5 +8,8 @@ endif
 
 mqclient: mqclient.c
 
+test: mqclient
+	./tests.sh
+
 clean:
 	rm -f mqclient
